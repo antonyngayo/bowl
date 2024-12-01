@@ -190,7 +190,7 @@ mod tests {
     use std::{borrow::Cow, time::Instant};
     #[allow(unused)]
     #[derive(Debug, PartialEq, Default, Clone, Copy, Eq, PartialOrd, Ord, Hash)]
-    enum ConversionState {
+    enum Bingo {
         #[default]
         Runnable,
         Running,
@@ -231,16 +231,12 @@ mod tests {
         let file = MediaFile {
             name: "test.mp4".into(),
             uuid: "1234".into(),
-            state: ConversionState::Runnable,
+            state: Bingo::Runnable,
             organization: "test".into(),
         };
 
         bowl.add(file.get_organization(), file.clone());
-        assert_eq!(
-            bowl.get_all::<MediaFile<ConversionState>, ConversionState>("test")
-                .len(),
-            1
-        );
+        assert_eq!(bowl.get_all::<MediaFile<Bingo>, Bingo>("test").len(), 1);
     }
 
     #[test]
@@ -249,12 +245,12 @@ mod tests {
         let file = MediaFile {
             name: "test.mp4".into(),
             uuid: "1234".into(),
-            state: ConversionState::Runnable,
+            state: Bingo::Runnable,
             organization: "test".into(),
         };
         bowl.add(file.get_organization(), file.clone());
         assert_eq!(
-            bowl.get::<MediaFile<ConversionState>, ConversionState>("test", "1234")
+            bowl.get::<MediaFile<Bingo>, Bingo>("test", "1234")
                 .unwrap()
                 .get_uuid(),
             "1234"
@@ -267,16 +263,13 @@ mod tests {
         let file = MediaFile {
             name: "test.mp4".into(),
             uuid: "1234".into(),
-            state: ConversionState::Runnable,
+            state: Bingo::Runnable,
             organization: "test".into(),
         };
         bowl.add(file.get_organization(), file.clone());
         assert_eq!(
-            bowl.filter_by_org_and_state::<MediaFile<ConversionState>, ConversionState>(
-                "test",
-                &ConversionState::Runnable
-            )
-            .len(),
+            bowl.filter_by_org_and_state::<MediaFile<Bingo>, Bingo>("test", &Bingo::Runnable)
+                .len(),
             1
         );
     }
@@ -287,21 +280,13 @@ mod tests {
         let file = MediaFile {
             name: "test.mp4".into(),
             uuid: "1234".into(),
-            state: ConversionState::Runnable,
+            state: Bingo::Runnable,
             organization: "test".into(),
         };
         bowl.add(file.get_organization(), file.clone());
-        assert_eq!(
-            bowl.get_all::<MediaFile<ConversionState>, ConversionState>("test")
-                .len(),
-            1
-        );
-        bowl.delete::<MediaFile<ConversionState>, ConversionState>("test", "1234");
-        assert_eq!(
-            bowl.get_all::<MediaFile<ConversionState>, ConversionState>("test")
-                .len(),
-            0
-        );
+        assert_eq!(bowl.get_all::<MediaFile<Bingo>, Bingo>("test").len(), 1);
+        bowl.delete::<MediaFile<Bingo>, Bingo>("test", "1234");
+        assert_eq!(bowl.get_all::<MediaFile<Bingo>, Bingo>("test").len(), 0);
     }
 
     // write a fuzzer for this with random data and see if it works
@@ -312,7 +297,7 @@ mod tests {
         let file = MediaFile {
             name: "test.mp4".into(),
             uuid: "12341".into(),
-            state: ConversionState::Runnable,
+            state: Bingo::Runnable,
             organization: "test".into(),
         };
         // add more files and use extend to add to the bowl and see if it works
@@ -320,21 +305,21 @@ mod tests {
         let file2 = MediaFile {
             name: "test2.mp4".into(),
             uuid: "12342".into(),
-            state: ConversionState::Runnable,
+            state: Bingo::Runnable,
             organization: "test".into(),
         };
 
         let file3 = MediaFile {
             name: "test3.mp4".into(),
             uuid: "12343".into(),
-            state: ConversionState::Runnable,
+            state: Bingo::Runnable,
             organization: "test".into(),
         };
 
         let file4 = MediaFile {
             name: "test4.mp4".into(),
             uuid: "12344".into(),
-            state: ConversionState::Runnable,
+            state: Bingo::Runnable,
             organization: "test".into(),
         };
         bowl.add(file.get_organization(), file.clone());
@@ -344,14 +329,32 @@ mod tests {
         // let files = vec![file, file2, file3, file4];
         // bowl.extend(files);
         assert_eq!(
-            bowl.filter_by_org_and_state::<MediaFile<ConversionState>, ConversionState>(
-                "test",
-                &ConversionState::Runnable
-            )
-            .len(),
+            bowl.filter_by_org_and_state::<MediaFile<Bingo>, Bingo>("test", &Bingo::Runnable)
+                .len(),
             4
         );
         eprintln!("Time taken: {:?}", start.elapsed());
         assert!(start.elapsed().as_micros() > 10); // range: 34.25µs - 50 µs
+    }
+
+    #[test]
+    fn update_state() {
+        let mut bowl = Bowl::new();
+        let file = MediaFile {
+            name: "test.mp4".into(),
+            uuid: "1234".into(),
+            state: Bingo::Runnable,
+            organization: "test".into(),
+        };
+        bowl.add(file.get_organization(), file.clone());
+        assert_eq!(bowl.get_all::<MediaFile<Bingo>, Bingo>("test").len(), 1);
+        bowl.update_state::<MediaFile<Bingo>, Bingo>("1234", "test", Bingo::Running);
+        assert_eq!(bowl.get_all::<MediaFile<Bingo>, Bingo>("test").len(), 1);
+        assert_eq!(
+            bowl.get::<MediaFile<Bingo>, Bingo>("test", "1234")
+                .unwrap()
+                .get_state(),
+            &Bingo::Running
+        );
     }
 }
