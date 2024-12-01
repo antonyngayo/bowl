@@ -21,6 +21,7 @@ pub trait MediaTrait {
 }
 
 #[allow(unused)]
+#[derive(Debug, Default)]
 pub(crate) struct Bowl {
     contents: BTreeMap<
         TypeId,
@@ -34,6 +35,21 @@ pub(crate) struct Bowl {
             >,
         >,
     >,
+}
+/// Implementing an extension trait for Bowl which is generic over any Iterator type that implements
+/// the MediaTrait trait
+impl<U: MediaTrait + std::fmt::Debug + Send + Sync + 'static + Clone> Extend<U> for Bowl {
+    fn extend<T: IntoIterator<Item = U>>(&mut self, iter: T) {
+        for file in iter {
+            let org = file.get_organization();
+            self.contents
+                .entry(TypeId::of::<U>())
+                .or_default()
+                .entry(org.into())
+                .or_default()
+                .insert(file.get_uuid().to_string(), Box::new(file));
+        }
+    }
 }
 
 #[allow(unused)]
@@ -105,10 +121,9 @@ impl Bowl {
     ) -> Vec<&T> {
         self.contents
             .get(&TypeId::of::<T>())
-            .and_then(|org_hash| org_hash.get(org))
-            .map(|target_org| {
-                target_org
-                    .iter()
+            .and_then(|orgn| orgn.get(org))
+            .map(|tg| {
+                tg.iter()
                     .map(|(_, v)| v.downcast_ref::<T>().unwrap())
                     .collect()
             })
@@ -225,5 +240,43 @@ mod tests {
         assert_eq!(bowl.get_all::<MediaFile>("test").len(), 1);
         bowl.delete::<MediaFile>("test", "1234");
         assert_eq!(bowl.get_all::<MediaFile>("test").len(), 0);
+    }
+
+    // write a fuzzer for this with random data and see if it works
+    #[test]
+    fn test_fuzzer() {
+        let mut bowl = Bowl::new();
+        let file = MediaFile {
+            name: "test.mp4".into(),
+            uuid: "12341".into(),
+            state: ConversionState::Runnable,
+            organization: "test".into(),
+        };
+        // add more files and use extend to add to the bowl and see if it works
+
+        let file2 = MediaFile {
+            name: "test2.mp4".into(),
+            uuid: "12342".into(),
+            state: ConversionState::Runnable,
+            organization: "test".into(),
+        };
+
+        let file3 = MediaFile {
+            name: "test3.mp4".into(),
+            uuid: "12343".into(),
+            state: ConversionState::Runnable,
+            organization: "test".into(),
+        };
+
+        let file4 = MediaFile {
+            name: "test4.mp4".into(),
+            uuid: "12344".into(),
+            state: ConversionState::Runnable,
+            organization: "test".into(),
+        };
+
+        let files = vec![file, file2, file3, file4];
+        bowl.extend(files);
+        assert_eq!(bowl.get_all::<MediaFile>("test").len(), 4);
     }
 }
