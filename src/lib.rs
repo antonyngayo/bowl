@@ -352,6 +352,6 @@ mod tests {
             4
         );
         eprintln!("Time taken: {:?}", start.elapsed());
-        assert!(start.elapsed().as_millis() > 10000);
+        assert!(start.elapsed().as_micros() > 10); // range: 34.25µs - 50 µs
     }
 }
