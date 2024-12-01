@@ -103,13 +103,16 @@ impl Bowl {
         &self,
         org: &str,
     ) -> Vec<&T> {
-        match self.contents.get(&TypeId::of::<T>()).unwrap().get(org) {
-            Some(target_org) => target_org
-                .iter()
-                .map(|(_, v)| v.downcast_ref::<T>().unwrap())
-                .collect(),
-            None => return vec![],
-        }
+        self.contents
+            .get(&TypeId::of::<T>())
+            .and_then(|org_hash| org_hash.get(org))
+            .map(|target_org| {
+                target_org
+                    .iter()
+                    .map(|(_, v)| v.downcast_ref::<T>().unwrap())
+                    .collect()
+            })
+            .unwrap_or(vec![])
     }
 
     pub fn filter_by_org_and_state<T: Any + std::fmt::Debug + MediaTrait + Send + Sync>(
