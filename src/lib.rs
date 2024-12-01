@@ -133,16 +133,18 @@ impl Bowl {
 
 #[cfg(test)]
 mod tests {
+    use std::borrow::Cow;
+
     use super::*;
     #[derive(Debug, PartialEq, Default, Clone, Eq, PartialOrd, Ord, Hash)]
-    struct MediaFile {
-        name: String,
-        uuid: String,
+    struct MediaFile<'a> {
+        name: Cow<'a, str>,
+        uuid: Cow<'a, str>,
         state: ConversionState,
-        organization: String,
+        organization: Cow<'a, str>,
     }
 
-    impl MediaTrait for MediaFile {
+    impl MediaTrait for MediaFile<'_> {
         fn get_name(&self) -> &str {
             &self.name
         }
@@ -164,10 +166,10 @@ mod tests {
     fn test_add() {
         let mut bowl = Bowl::new();
         let file = MediaFile {
-            name: "test.mp4".to_string(),
-            uuid: "1234".to_string(),
+            name: "test.mp4".into(),
+            uuid: "1234".into(),
             state: ConversionState::Runnable,
-            organization: "test".to_string(),
+            organization: "test".into(),
         };
 
         bowl.add(file.get_organization(), file.clone());
@@ -178,10 +180,10 @@ mod tests {
     fn test_get() {
         let mut bowl = Bowl::new();
         let file = MediaFile {
-            name: "test.mp4".to_string(),
-            uuid: "1234".to_string(),
+            name: "test.mp4".into(),
+            uuid: "1234".into(),
             state: ConversionState::Runnable,
-            organization: "test".to_string(),
+            organization: "test".into(),
         };
         bowl.add(file.get_organization(), file.clone());
         assert_eq!(
@@ -194,10 +196,10 @@ mod tests {
     fn test_get_by_org_and_state() {
         let mut bowl = Bowl::new();
         let file = MediaFile {
-            name: "test.mp4".to_string(),
-            uuid: "1234".to_string(),
+            name: "test.mp4".into(),
+            uuid: "1234".into(),
             state: ConversionState::Runnable,
-            organization: "test".to_string(),
+            organization: "test".into(),
         };
         bowl.add(file.get_organization(), file.clone());
         assert_eq!(
@@ -211,10 +213,10 @@ mod tests {
     fn test_delete() {
         let mut bowl = Bowl::new();
         let file = MediaFile {
-            name: "test.mp4".to_string(),
-            uuid: "1234".to_string(),
+            name: "test.mp4".into(),
+            uuid: "1234".into(),
             state: ConversionState::Runnable,
-            organization: "test".to_string(),
+            organization: "test".into(),
         };
         bowl.add(file.get_organization(), file.clone());
         assert_eq!(bowl.get_all::<MediaFile>("test").len(), 1);
