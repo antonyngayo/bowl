@@ -22,7 +22,7 @@ pub trait MediaTrait {
 
 #[allow(unused)]
 #[derive(Debug, Default)]
-pub(crate) struct Bowl {
+pub struct Bowl {
     contents: BTreeMap<
         TypeId,
         HashMap<

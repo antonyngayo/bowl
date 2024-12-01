@@ -2,5 +2,17 @@
 name = "bowl"
 version = "0.1.0"
 edition = "2021"
+authors = ["Antony Ngayo <anthony@groctech.com>"]
+license = "MIT"
+description = "A way to fetch data using simple APIs"
+repository = "https://github.com/antonyngayo/bowl"
+keywords = ["bowl", "MediaFile"]
+categories = ["Media Processing"]
+rust-version = "1.83.0"
+
+[lib]
+name = "bowl"
+path = "src/lib.rs"
+
 
 [dependencies]
