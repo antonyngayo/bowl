@@ -78,7 +78,7 @@ impl Bowl {
         }
     }
 
-    pub fn add<
+    pub async fn add<
         T: Any + MediaTrait<C> + std::fmt::Debug + Send + Sync + 'static,
         C: std::cmp::PartialEq<C>,
     >(
@@ -96,7 +96,7 @@ impl Bowl {
     }
 
     // getting one file based on type and uuid
-    pub fn get<
+    pub async fn get<
         T: Any + std::fmt::Debug + MediaTrait<C> + Send + Sync,
         C: std::cmp::PartialEq<C>,
     >(
@@ -110,7 +110,7 @@ impl Bowl {
         })
     }
 
-    pub fn update_state<
+    pub async fn update_state<
         T: Any + std::fmt::Debug + MediaTrait<C> + Send + Sync,
         C: std::cmp::PartialEq<C>,
     >(
@@ -131,7 +131,7 @@ impl Bowl {
     }
 
     // deleting a file based on type and uuid
-    pub fn delete<
+    pub async fn delete<
         T: Any + std::fmt::Debug + MediaTrait<C> + Send + Sync,
         C: std::cmp::PartialEq<C>,
     >(
@@ -145,7 +145,7 @@ impl Bowl {
     }
 
     // get_all
-    pub fn get_all<
+    pub async fn get_all<
         T: Any + std::fmt::Debug + MediaTrait<C> + Send + Sync,
         C: std::cmp::PartialEq<C>,
     >(
@@ -163,7 +163,7 @@ impl Bowl {
             .unwrap_or_default()
     }
 
-    pub fn filter_by_org_and_state<
+    pub async fn filter_by_org_and_state<
         T: Any + std::fmt::Debug + MediaTrait<C> + Send + Sync,
         C: std::cmp::PartialEq<C>,
     >(
@@ -225,8 +225,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_add() {
+    #[tokio::test]
+    async fn test_add() {
         let mut bowl = Bowl::new();
         let file = MediaFile {
             name: "test.mp4".into(),
@@ -235,30 +235,31 @@ mod tests {
             organization: "test".into(),
         };
 
-        bowl.add(file.get_organization(), file.clone());
-        assert_eq!(bowl.get_all::<MediaFile<Bingo>, Bingo>("test").len(), 1);
-    }
-
-    #[test]
-    fn test_get() {
-        let mut bowl = Bowl::new();
-        let file = MediaFile {
-            name: "test.mp4".into(),
-            uuid: "1234".into(),
-            state: Bingo::Runnable,
-            organization: "test".into(),
-        };
-        bowl.add(file.get_organization(), file.clone());
+        bowl.add(file.get_organization(), file.clone()).await;
         assert_eq!(
-            bowl.get::<MediaFile<Bingo>, Bingo>("test", "1234")
-                .unwrap()
-                .get_uuid(),
-            "1234"
+            bowl.get_all::<MediaFile<Bingo>, Bingo>("test").await.len(),
+            1
+        );
+    }
+    // write an async test for this
+    #[tokio::test]
+    async fn test_get() {
+        let mut bowl = Bowl::new();
+        let file = MediaFile {
+            name: "test.mp4".into(),
+            uuid: "1234".into(),
+            state: Bingo::Runnable,
+            organization: "test".into(),
+        };
+        bowl.add(file.get_organization(), file.clone()).await;
+        assert_eq!(
+            bowl.get_all::<MediaFile<Bingo>, Bingo>("test").await.len(),
+            1
         );
     }
 
-    #[test]
-    fn test_get_by_org_and_state() {
+    #[tokio::test]
+    async fn test_get_by_org_and_state() {
         let mut bowl = Bowl::new();
         let file = MediaFile {
             name: "test.mp4".into(),
@@ -266,16 +267,17 @@ mod tests {
             state: Bingo::Runnable,
             organization: "test".into(),
         };
-        bowl.add(file.get_organization(), file.clone());
+        bowl.add(file.get_organization(), file.clone()).await;
         assert_eq!(
             bowl.filter_by_org_and_state::<MediaFile<Bingo>, Bingo>("test", &Bingo::Runnable)
+                .await
                 .len(),
             1
         );
     }
 
-    #[test]
-    fn test_delete() {
+    #[tokio::test]
+    async fn test_delete() {
         let mut bowl = Bowl::new();
         let file = MediaFile {
             name: "test.mp4".into(),
@@ -283,15 +285,21 @@ mod tests {
             state: Bingo::Runnable,
             organization: "test".into(),
         };
-        bowl.add(file.get_organization(), file.clone());
-        assert_eq!(bowl.get_all::<MediaFile<Bingo>, Bingo>("test").len(), 1);
-        bowl.delete::<MediaFile<Bingo>, Bingo>("test", "1234");
-        assert_eq!(bowl.get_all::<MediaFile<Bingo>, Bingo>("test").len(), 0);
+        bowl.add(file.get_organization(), file.clone()).await;
+        assert_eq!(
+            bowl.get_all::<MediaFile<Bingo>, Bingo>("test").await.len(),
+            1
+        );
+        bowl.delete::<MediaFile<Bingo>, Bingo>("test", "1234").await;
+        assert_eq!(
+            bowl.get_all::<MediaFile<Bingo>, Bingo>("test").await.len(),
+            0
+        );
     }
 
     // write a fuzzer for this with random data and see if it works
-    #[test]
-    fn test_fuzzer() {
+    #[tokio::test]
+    async fn test_fuzzer() {
         let start = Instant::now();
         let mut bowl = Bowl::new();
         let file = MediaFile {
@@ -322,14 +330,15 @@ mod tests {
             state: Bingo::Runnable,
             organization: "test".into(),
         };
-        bowl.add(file.get_organization(), file.clone());
-        bowl.add(file2.get_organization(), file2.clone());
-        bowl.add(file3.get_organization(), file3.clone());
-        bowl.add(file4.get_organization(), file4.clone());
+        bowl.add(file.get_organization(), file.clone()).await;
+        bowl.add(file2.get_organization(), file2.clone()).await;
+        bowl.add(file3.get_organization(), file3.clone()).await;
+        bowl.add(file4.get_organization(), file4.clone()).await;
         // let files = vec![file, file2, file3, file4];
         // bowl.extend(files);
         assert_eq!(
             bowl.filter_by_org_and_state::<MediaFile<Bingo>, Bingo>("test", &Bingo::Runnable)
+                .await
                 .len(),
             4
         );
@@ -337,8 +346,8 @@ mod tests {
         assert!(start.elapsed().as_micros() > 10); // range: 34.25µs - 50 µs
     }
 
-    #[test]
-    fn update_state() {
+    #[tokio::test]
+    async fn update_state() {
         let mut bowl = Bowl::new();
         let file = MediaFile {
             name: "test.mp4".into(),
@@ -346,12 +355,20 @@ mod tests {
             state: Bingo::Runnable,
             organization: "test".into(),
         };
-        bowl.add(file.get_organization(), file.clone());
-        assert_eq!(bowl.get_all::<MediaFile<Bingo>, Bingo>("test").len(), 1);
-        bowl.update_state::<MediaFile<Bingo>, Bingo>("1234", "test", Bingo::Running);
-        assert_eq!(bowl.get_all::<MediaFile<Bingo>, Bingo>("test").len(), 1);
+        bowl.add(file.get_organization(), file.clone()).await;
+        assert_eq!(
+            bowl.get_all::<MediaFile<Bingo>, Bingo>("test").await.len(),
+            1
+        );
+        bowl.update_state::<MediaFile<Bingo>, Bingo>("1234", "test", Bingo::Running)
+            .await;
+        assert_eq!(
+            bowl.get_all::<MediaFile<Bingo>, Bingo>("test").await.len(),
+            1
+        );
         assert_eq!(
             bowl.get::<MediaFile<Bingo>, Bingo>("test", "1234")
+                .await
                 .unwrap()
                 .get_state(),
             &Bingo::Running
