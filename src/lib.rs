@@ -86,13 +86,42 @@ impl Bowl {
         org: &str,
         value: T,
     ) {
-        // insert value based on type and uuid
-        self.contents
+        // check if key exists first, it it does, we delete old key and insert new key
+        match self
+            .contents
             .entry(TypeId::of::<T>())
             .or_default()
             .entry(org.into())
             .or_default()
-            .insert(value.get_uuid().to_string(), Box::new(value));
+            .contains_key(value.get_uuid())
+        {
+            true => {
+                // deleting the old key first
+                self.contents
+                    .get_mut(&TypeId::of::<T>())
+                    .and_then(|org_hash| {
+                        org_hash
+                            .get_mut(org)
+                            .map(|target_org| target_org.remove(value.get_uuid()))
+                    });
+                // adding the new key with the new value
+                self.contents
+                    .entry(TypeId::of::<T>())
+                    .or_default()
+                    .entry(org.into())
+                    .or_default()
+                    .insert(value.get_uuid().to_string(), Box::new(value));
+            }
+            false => {
+                // adding new value that doesn't exist
+                self.contents
+                    .entry(TypeId::of::<T>())
+                    .or_default()
+                    .entry(org.into())
+                    .or_default()
+                    .insert(value.get_uuid().to_string(), Box::new(value));
+            }
+        }
     }
 
     // getting one file based on type and uuid
@@ -372,6 +401,34 @@ mod tests {
                 .unwrap()
                 .get_state(),
             &Bingo::Running
+        );
+    }
+    #[tokio::test]
+    async fn test_add_twice() {
+        let mut bowl = Bowl::new();
+        let file = MediaFile {
+            name: "test_original.mp4".into(),
+            uuid: "1234111".into(),
+            state: Bingo::Runnable,
+            organization: "test".into(),
+        };
+        let file2 = MediaFile {
+            name: "test_next_one.mp4".into(),
+            uuid: "1234111".into(),
+            state: Bingo::Runnable,
+            organization: "test".into(),
+        };
+        bowl.add(file.get_organization(), file.clone()).await;
+        assert_eq!(
+            bowl.filter_by_org_and_state::<MediaFile<Bingo>, Bingo>("test", &Bingo::Runnable)
+                .await,
+            vec![&file]
+        );
+        bowl.add(file2.get_organization(), file2.clone()).await;
+        assert_eq!(
+            bowl.filter_by_org_and_state::<MediaFile<Bingo>, Bingo>("test", &Bingo::Runnable)
+                .await,
+            vec![&file2]
         );
     }
 }
