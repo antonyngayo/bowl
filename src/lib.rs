@@ -14,12 +14,6 @@ type BowlType = BTreeMap<
     >,
 >;
 
-// make a trait that will implement ConversionState on any enum type that has the same variants
-// pub trait ConversionStateTrait<C> {
-//     fn get_current_state(&self) -> &C;
-//     fn set_current_state(&mut self, state: C);
-// }
-
 pub trait MediaTrait<C> {
     fn get_name(&self) -> &str; // this is the name of the file
     fn get_uuid(&self) -> &str;
@@ -33,42 +27,6 @@ pub trait MediaTrait<C> {
 pub struct Bowl {
     contents: BowlType,
 }
-/// Implementing an extension trait for Bowl which is generic over any Iterator type that implements
-/// the MediaTrait trait
-
-// impl<MediaType: MediaTrait<ConversionState> + std::fmt::Debug + Send + Sync + 'static>
-//     for Bowl
-// {
-//     fn extend<T: IntoIterator<Item = MediaType>>(&mut self, iter: T) {
-//         for file in iter {
-//             let org = file.get_organization();
-//             self.contents
-//                 .entry(TypeId::of::<MediaType>())
-//                 .or_default()
-//                 .entry(org.into())
-//                 .or_default()
-//                 .insert(file.get_uuid().to_string(), Box::new(file));
-//         }
-//     }
-// }
-
-// impl<
-//         U: MediaTrait<C> + std::fmt::Debug + Send + Sync + 'static + Clone,
-//         C: std::cmp::PartialEq,
-//     > Extend<MediaTrait<C>> for Bowl
-// {
-//     fn extend<T: IntoIterator<Item = Media>>(&mut self, iter: T) {
-//         for file in iter {
-//             let org = file.get_organization();
-//             self.contents
-//                 .entry(TypeId::of::<U>())
-//                 .or_default()
-//                 .entry(org.into())
-//                 .or_default()
-//                 .insert(file.get_uuid().to_string(), Box::new(file));
-//         }
-//     }
-// }
 
 #[allow(unused)]
 impl Bowl {
@@ -91,35 +49,29 @@ impl Bowl {
             .contents
             .entry(TypeId::of::<T>())
             .or_default()
-            .entry(org.into())
+            .entry(value.get_organization().into())
             .or_default()
             .contains_key(value.get_uuid())
         {
             true => {
-                // deleting the old key first
-                self.contents
-                    .get_mut(&TypeId::of::<T>())
-                    .and_then(|org_hash| {
-                        org_hash
-                            .get_mut(org)
-                            .map(|target_org| target_org.remove(value.get_uuid()))
-                    });
-                // adding the new key with the new value
+                eprintln!("key already exists: {}", value.get_uuid());
                 self.contents
                     .entry(TypeId::of::<T>())
                     .or_default()
-                    .entry(org.into())
+                    .entry(value.get_organization().into())
                     .or_default()
-                    .insert(value.get_uuid().to_string(), Box::new(value));
+                    .entry(value.get_uuid().into())
+                    .and_modify(|x| {
+                        *x = Box::new(value);
+                    });
             }
             false => {
-                // adding new value that doesn't exist
                 self.contents
                     .entry(TypeId::of::<T>())
                     .or_default()
-                    .entry(org.into())
+                    .entry(value.get_organization().into())
                     .or_default()
-                    .insert(value.get_uuid().to_string(), Box::new(value));
+                    .insert(value.get_uuid().into(), Box::new(value));
             }
         }
     }
@@ -415,7 +367,7 @@ mod tests {
         let file2 = MediaFile {
             name: "test_next_one.mp4".into(),
             uuid: "1234111".into(),
-            state: Bingo::Runnable,
+            state: Bingo::Finished,
             organization: "test".into(),
         };
         bowl.add(file.get_organization(), file.clone()).await;
@@ -426,7 +378,7 @@ mod tests {
         );
         bowl.add(file2.get_organization(), file2.clone()).await;
         assert_eq!(
-            bowl.filter_by_org_and_state::<MediaFile<Bingo>, Bingo>("test", &Bingo::Runnable)
+            bowl.filter_by_org_and_state::<MediaFile<Bingo>, Bingo>("test", &Bingo::Finished)
                 .await,
             vec![&file2]
         );
