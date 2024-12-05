@@ -8,7 +8,7 @@ description = "A way to fetch data using simple APIs"
 repository = "https://github.com/antonyngayo/bowl"
 keywords = ["bowl", "MediaFile"]
 categories = ["Media Processing"]
-rust-version = "1.83.0"
+rust-version = "1.82.0"                               # allow older rust versions
 
 [lib]
 name = "bowl"

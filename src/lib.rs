@@ -119,10 +119,15 @@ impl Bowl {
         &mut self,
         org: &str,
         uuid: &str,
-    ) {
-        self.contents
+    ) -> bool {
+        match self
+            .contents
             .get_mut(&TypeId::of::<T>())
-            .and_then(|target| target.get_mut(org).and_then(|mark| mark.remove(uuid)));
+            .and_then(|target| target.get_mut(org).and_then(|mark| mark.remove(uuid)))
+        {
+            Some(_) => true,
+            None => false,
+        }
     }
 
     // get_all
@@ -258,6 +263,25 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn delete_and_return_bool() {
+        let mut bowl = Bowl::new();
+        let file = MediaFile {
+            name: "test.mp4".into(),
+            uuid: "1234".into(),
+            state: Bingo::Runnable,
+            organization: "test".into(),
+        };
+        bowl.add(file.get_organization(), file.clone()).await;
+        assert_eq!(
+            bowl.get_all::<MediaFile<Bingo>, Bingo>("test").await.len(),
+            1
+        );
+        assert_eq!(
+            bowl.delete::<MediaFile<Bingo>, Bingo>("test", "1234").await,
+            true
+        );
+    }
+    #[tokio::test]
     async fn test_delete() {
         let mut bowl = Bowl::new();
         let file = MediaFile {
@@ -271,7 +295,10 @@ mod tests {
             bowl.get_all::<MediaFile<Bingo>, Bingo>("test").await.len(),
             1
         );
-        bowl.delete::<MediaFile<Bingo>, Bingo>("test", "1234").await;
+        assert_eq!(
+            bowl.delete::<MediaFile<Bingo>, Bingo>("test", "1234").await,
+            true
+        );
         assert_eq!(
             bowl.get_all::<MediaFile<Bingo>, Bingo>("test").await.len(),
             0
