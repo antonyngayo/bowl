@@ -2,7 +2,6 @@ use std::{
     any::{Any, TypeId},
     collections::{BTreeMap, HashMap},
 };
-
 type BowlType = BTreeMap<
     TypeId,
     HashMap<
@@ -54,7 +53,6 @@ impl Bowl {
             .contains_key(value.get_uuid())
         {
             true => {
-                eprintln!("key already exists: {}", value.get_uuid());
                 self.contents
                     .entry(TypeId::of::<T>())
                     .or_default()
@@ -120,14 +118,10 @@ impl Bowl {
         org: &str,
         uuid: &str,
     ) -> bool {
-        match self
-            .contents
+        self.contents
             .get_mut(&TypeId::of::<T>())
             .and_then(|target| target.get_mut(org).and_then(|mark| mark.remove(uuid)))
-        {
-            Some(_) => true,
-            None => false,
-        }
+            .is_some()
     }
 
     // get_all
