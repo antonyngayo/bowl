@@ -270,10 +270,7 @@ mod tests {
             bowl.get_all::<MediaFile<Bingo>, Bingo>("test").await.len(),
             1
         );
-        assert_eq!(
-            bowl.delete::<MediaFile<Bingo>, Bingo>("test", "1234").await,
-            true
-        );
+        assert!(bowl.delete::<MediaFile<Bingo>, Bingo>("test", "1234").await);
     }
     #[tokio::test]
     async fn test_delete() {
